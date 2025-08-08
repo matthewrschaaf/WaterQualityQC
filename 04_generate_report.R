@@ -20,25 +20,7 @@ generate_excel_report <- function(user_input,
   bold_style <- createStyle(textDecoration = "Bold")
   wrap_style <- createStyle(wrapText = TRUE)
   
-  # --- 2. Build Sheet 1: Overview & Metadata ---
-  addWorksheet(wb, "Overview and Metadata")
-  
-  overview_df <- data.frame(
-    Parameter = c("Analysis Date Range", "Lakes/Sites Included", "QC Types Analyzed"),
-    Value = c(
-      paste(user_input$start_date, "to", user_input$end_date),
-      paste(user_input$selected_lakes, collapse = ", "),
-      paste(user_input$selected_qc_types, collapse = ", ")
-    )
-  )
-  
-  # Write content to the sheet, managing rows manually
-  writeData(wb, "Overview and Metadata", "Analysis Overview", startCol = 1, startRow = 1)
-  addStyle(wb, "Overview and Metadata", style = bold_style, rows = 1, cols = 1)
-  writeData(wb, "Overview and Metadata", overview_df, startCol = 1, startRow = 2, colNames = FALSE)
-  setColWidths(wb, "Overview and Metadata", cols = 1:2, widths = "auto")
-  
-  # --- 3. Build Sheet 2: Locations Sampled ---
+  # --- 2. Build Sheet 2: Locations Sampled ---
   addWorksheet(wb, "Locations Sampled")
   writeData(wb, "Locations Sampled", locations, startCol = 1, startRow = 1)
   addStyle(wb, "Locations Sampled", style = bold_style, rows = 1, cols = 1:ncol(locations))
@@ -46,12 +28,12 @@ generate_excel_report <- function(user_input,
   setColWidths(wb, "Locations Sampled", cols = 1:ncol(locations), widths = "auto")
   
   
-  # --- 4. Placeholder for Sheet 3
+  # --- 3. Placeholder for Sheet 3
   addWorksheet(wb, "Samples Collected vs Projected")
   writeData(wb, "Samples Collected vs Projected", "Placeholder: See information about tracking sampling (PSP?).")
   
   
-  # --- 5. Build Sheet 4-7: All Chem QC Results Tables ---
+  # --- 4. Build Sheet 4-7: All Chem QC Results Tables ---
   
   # Define the detailed criteria text once to reuse it
   criteria_text <- paste(
@@ -75,7 +57,7 @@ generate_excel_report <- function(user_input,
     "• If either (or both) are 'pass', the overall status is 'pass'.",
     "",
     "Nitrogen, Total (Tot):",
-    "• A sample is marked 'fail' if either 'Kjeldahl, Tot' or 'NO2+NO3, Tot' is 'fail'",
+    "• A sample is marked 'fail' if either 'Kjeldahl, Tot' or 'NO2+NO3, Tot' is 'fail' for the same associated sample",
     sep = "\n"
   )
   
@@ -170,7 +152,7 @@ generate_excel_report <- function(user_input,
     }
     
     # --- Add the criteria text block to the sheet ---
-    start_col_criteria <- start_col_set2 + ncol(overall_stats_sheet) + 4
+    start_col_criteria <- start_col_set2 + ncol(overall_stats_sheet) + 3
     writeData(workbook, sheet_name, "Enlarge Comment Box to View QC Criteria", startCol = start_col_criteria, startRow = 1)
     addStyle(workbook, sheet_name, style = bold_style, rows = 1, cols = start_col_criteria)
     criteria_comment <- createComment(comment = criteria_text)
@@ -317,16 +299,16 @@ generate_excel_report <- function(user_input,
   }
   
   
-  # --- 7. Biological QC Sheets ---
+  # --- 5. Biological QC Sheets ---
   
-  # --- 7a. All Bio QC Results Sheet ---
+  # --- 5a. All Bio QC Results Sheet ---
   addWorksheet(wb, "All Bio QC Results")
   writeData(wb, "All Bio QC Results", bio_data)
   addStyle(wb, "All Bio QC Results", style = bold_style, rows = 1, cols = 1:ncol(bio_data))
   addFilter(wb, "All Bio QC Results", rows = 1, cols = 1:ncol(bio_data))
   setColWidths(wb, "All Bio QC Results", cols = 1:ncol(bio_data), widths = "auto")
   
-  # --- 7b. Biological Summary Sheet ---
+  # --- 5b. Biological Summary Sheet ---
   addWorksheet(wb, "Bio Summary Statistics")
   
   bc_criteria_text <- paste(
@@ -372,12 +354,12 @@ generate_excel_report <- function(user_input,
   )
   
   
-  # --- 8. Placeholder for Sheet 6 ---
+  # --- 6. Placeholder for Sheet 6 ---
   addWorksheet(wb, "SOP Deviations")
   writeData(wb, "SOP Deviations", "Placeholder: Use this sheet to document any deviations from SOPs.")
   
   
-  # --- 9. Save the Workbook ---
+  # --- 7. Save the Workbook ---
   saveWorkbook(wb, file = output_filepath, overwrite = TRUE)
   message(paste("Excel report generated successfully at:", output_filepath))
 }

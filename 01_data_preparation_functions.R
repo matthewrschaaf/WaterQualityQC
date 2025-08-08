@@ -5,7 +5,7 @@ library(dplyr)
 library(tidyr)
 
 
-fetch_and_prep_tables <- function(db_path, start_date, end_date, lakes, qc_types) {
+fetch_and_prep_tables <- function(db_path, start_date, end_date) {
   
   connection_string <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=O:/ED/Private/Water Quality/DASLER/Louisville_DASLER 81.mdb"
   
@@ -37,9 +37,7 @@ fetch_and_prep_tables <- function(db_path, start_date, end_date, lakes, qc_types
       ) %>%
       mutate(QC_Sample_Date = as.Date(substr(QC_Sample, 1, 8), format = "%Y%m%d")) %>%
       filter(QC_Sample_Date >= start_date & QC_Sample_Date <= end_date) %>%
-      select(-QC_Sample_Date) %>% 
-      filter(if ("ALL" %in% qc_types) TRUE else QC_Type %in% qc_types) %>%
-      filter(if ("ALL" %in% lakes) TRUE else substr(Loc_ID, 1, 3) %in% lakes)
+      select(-QC_Sample_Date)
     
     message("-> Processed ", nrow(QC_Results), " records from [QC Results].")
     

@@ -19,36 +19,19 @@ get_user_input <- function() {
     titlePanel("QC and Program Activity Closeout Report"),
     sidebarLayout(
       sidebarPanel(
-        helpText("Select the parameters for the data quality screening and program activity closeout report generation."),
+        helpText("Select the date range for the data quality screening and program activity closeout report generation."),
         
         dateRangeInput("date_range", 
                        label = "1. Select Date Range:",
                        start = Sys.Date() - 365,
                        end = Sys.Date()),
         
-        selectizeInput("lakes", 
-                       label = "2. Select Lakes:",
-                       choices = c('ALL', 'BVR', 'CMR', 'CHL', 'MNR', 'PRR', 'BRR', 'BHR', 'CFK',
-                                   'CRR', 'GRR', 'NRR', 'RRR', 'TAR', 'CCK', 'CBR', 'WFR', 'EFR'),
-                       selected = 'ALL',
-                       multiple = TRUE,
-                       options = list(placeholder = 'Click to see options')),
-        
-        selectizeInput("qc_types", 
-                       label = "3. Select QC Checks to Perform:",
-                       choices = c("ALL", "BLK", "DDL", "DUP", "FBLK", "LCS", "LCSD", 
-                                   "LDUP", "LMB", "MS", "MSD", "NO3", "RNS", "SO4", 
-                                   "SPI", "SPL", "TBLK", "PQL", "PQN", "ZQL", "ZQN"),
-                       selected = "ALL",
-                       multiple = TRUE,
-                       options = list(placeholder = 'Click to see options')),
-        
         actionButton("run_analysis", "Run Analysis", class = "btn-primary", icon = icon("play"))
       ),
       
       mainPanel(
         h3("Ready to Go!"),
-        p("Once you have made your selections in the panel on the left, click the 'Run Analysis' button to begin."),
+        p("Once you have made your selection in the panel on the left, click the 'Run Analysis' button to begin."),
         br(),
         p("This window will close automatically, and the analysis will start in your RStudio console.")
       )
@@ -60,9 +43,7 @@ get_user_input <- function() {
     observeEvent(input$run_analysis, {
       user_selections <- list(
         start_date = as.Date(input$date_range[1]),
-        end_date = as.Date(input$date_range[2]),
-        selected_lakes = input$lakes,
-        selected_qc_types = input$qc_types
+        end_date = as.Date(input$date_range[2])
       )
       stopApp(user_selections)
     })
@@ -89,8 +70,6 @@ main <- function() {
   message("\n--- Analysis Parameters Captured ---")
   message("Start Date: ", user_input$start_date)
   message("End Date: ", user_input$end_date)
-  message("Lakes: ", paste(user_input$selected_lakes, collapse = ", "))
-  message("QC Checks: ", paste(user_input$selected_qc_types, collapse = ", "))
   message("------------------------------------\n")
   
   
@@ -103,9 +82,7 @@ main <- function() {
   message("Starting data preparation...\n")
   data_list <- fetch_and_prep_tables(
     start_date = user_input$start_date,
-    end_date   = user_input$end_date,
-    lakes      = user_input$selected_lakes,
-    qc_types   = user_input$selected_qc_types
+    end_date   = user_input$end_date
   )
   
   
