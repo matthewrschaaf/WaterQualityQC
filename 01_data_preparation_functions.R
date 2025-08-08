@@ -32,7 +32,7 @@ fetch_and_prep_tables <- function(db_path, start_date, end_date) {
         Text_QC_Value = TEXT_VALUE,
         QC_Type = QC_TYPE,
         UnitsQC = UNITS,
-        LOQ = PQUANT,
+        QC_LOQ = PQUANT,
         QC_Lab_Sample_Num = LAB_SNUM
       ) %>%
       mutate(QC_Sample_Date = as.Date(substr(QC_Sample, 1, 8), format = "%Y%m%d")) %>%
@@ -58,7 +58,7 @@ fetch_and_prep_tables <- function(db_path, start_date, end_date) {
     
     # --- 3. Fetch and Process [Results] ---
     message("Fetching and processing 'Results'...")
-    Results <- dbGetQuery(con, "SELECT LOC_ID, SAMPLE_NUM, VALUE, TEXT_VALUE, STORET_NUM, UNITS, LAB_SNUM, LAB_ID
+    Results <- dbGetQuery(con, "SELECT LOC_ID, SAMPLE_NUM, VALUE, TEXT_VALUE, STORET_NUM, UNITS, LAB_SNUM, LAB_ID, PQUANT
                                    FROM [Results]") %>%
       dplyr::rename(
         Loc_ID = LOC_ID,
@@ -66,6 +66,7 @@ fetch_and_prep_tables <- function(db_path, start_date, end_date) {
         Field_Value = VALUE,
         Text_Field_Value = TEXT_VALUE,
         Storet_Num = STORET_NUM,
+        Field_LOQ = PQUANT,
         UnitsField = UNITS,
         Field_Lab_ID = LAB_ID,
         Field_Lab_Sample_Num = LAB_SNUM,
@@ -241,36 +242,45 @@ fetch_and_prep_tables <- function(db_path, start_date, end_date) {
                            by = c("Loc_ID", "Assoc_Samp", "Storet_Num"))
     
     # --- Merge 3: The result with the Analytes lookup table ---
-    final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num")
-    
-    # Step 3a: Separate data into two sets: one with a valid LOQ and one without
-    data_with_loq <- final_merged_df %>%
-      filter(!is.na(LOQ))
-    
-    data_without_loq <- final_merged_df %>%
-      filter(is.na(LOQ))
-    
-    # Step 3b: Process the data that has a valid LOQ
-    # Apply the 0.5 * LOQ replacement logic ONLY to this subset
-    if (nrow(data_with_loq) > 0) {
-      data_with_loq <- data_with_loq %>%
-        mutate(
-          QC_Value = if_else(is.na(QC_Value), 0.5 * LOQ, QC_Value),
-          Field_Value = if_else(is.na(Field_Value), 0.5 * LOQ, Field_Value)
-        )
-    }
-    
-    # Step 3c: Recombine the two data sets
-    final_merged_df <- bind_rows(data_with_loq, data_without_loq)
-    
-    # Step 3d: Perform unit conversions on the entire, recombined data set
-    final_merged_df <- final_merged_df %>%
+    final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num") %>%
       mutate(
+        # --- Handle NA replacement based on new rules ---
+        
+        # Rule for QC_Value: Replace NA with 0.5 * QC_LOQ only if QC_LOQ is available.
+        QC_Value = if_else(is.na(QC_Value) & !is.na(QC_LOQ), 0.5 * QC_LOQ, QC_Value),
+        
+        # Rule for Field_Value: Replace NA with 0.5 * Field_LOQ only if Field_LOQ is available.
+        Field_Value = if_else(is.na(Field_Value) & !is.na(Field_LOQ), 0.5 * Field_LOQ, Field_Value),
+        
+        # --- Unit conversion logic (applied after NA replacement) ---
         QC_Value = ifelse(UnitsQC == "ug/L" & UnitsField == "mg/L", QC_Value / 1000, QC_Value),
         UnitsQC = ifelse(UnitsQC == "ug/L" & UnitsField == "mg/L", "mg/L", UnitsQC),
         
         Field_Value = ifelse(UnitsField == "ug/L" & UnitsQC == "mg/L", Field_Value / 1000, Field_Value),
         UnitsField = ifelse(UnitsField == "ug/L" & UnitsQC == "mg/L", "mg/L", UnitsField)
+      )
+    
+    final_merged_df <- final_merged_df %>%
+      select(
+        Loc_ID,
+        QC_Sample,
+        QC_Lab_ID,
+        Storet_Num,
+        Parameter,
+        Sample_Type,
+        QC_Value,
+        Text_QC_Value,
+        UnitsQC,
+        QC_LOQ,
+        QC_Type,
+        QC_Lab_Sample_Num,
+        Field_Lab_ID,
+        Assoc_Samp,
+        Field_Value,
+        Text_Field_Value,
+        UnitsField,
+        Field_LOQ,
+        Field_Lab_Sample_Num
       )
     
     

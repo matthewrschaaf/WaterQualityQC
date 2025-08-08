@@ -24,8 +24,8 @@ screen_qc_data <- function(merged_dataframe) {
       
       # --- Step 1: Calculate Criteria 1 for all samples ---
       QC_Failed_Criteria1 = case_when(
-        QC_Type %in% c("FBLK", "RNS") & is.na(LOQ) ~ NA_character_,
-        QC_Type %in% c("FBLK", "RNS") & QC_Value >= LOQ ~ "Fail",
+        QC_Type %in% c("FBLK", "RNS") & is.na(QC_LOQ) ~ NA_character_,
+        QC_Type %in% c("FBLK", "RNS") & QC_Value >= QC_LOQ ~ "Fail",
         QC_Type %in% c("DDL", "DUP", "SPL") & RPD > 20 ~ "Fail",
         Parameter == "ORP" & RPD > 20 ~ "Fail",
         TRUE ~ "Pass"
@@ -35,13 +35,13 @@ screen_qc_data <- function(merged_dataframe) {
       # only necessary for dups/splits that failed Criteria 1 and have a valid LOQ.
       QC_Failed_Criteria2 = case_when(
         QC_Failed_Criteria1 == "Pass" ~ NA_character_, # If C1 passes, C2 automatically passes.
-        is.na(LOQ) ~ "Can Not Be Calculated due to NA LOQ", # If LOQ is NA, C2 cannot be calculated.
+        is.na(QC_LOQ) ~ "Can Not Be Calculated due to NA LOQ", # If LOQ is NA, C2 cannot be calculated.
         !QC_Type %in% c("DDL", "DUP", "SPL") ~ QC_Failed_Criteria1, # For non-dups, C2 is the same as C1.
         
         # For dups that failed C1 and have a valid LOQ, apply the specific rules:
         QC_Value == 0 & Field_Value == 0 ~ "Pass",
-        abs(QC_Value) >= 5 * LOQ & abs(Field_Value) >= 5 * LOQ & RPD > 20 ~ "Fail",
-        abs(QC_Value) < 5 * LOQ | abs(Field_Value) < 5 * LOQ & abs(abs(QC_Value) - abs(Field_Value)) > 2 * LOQ ~ "Fail",
+        abs(QC_Value) >= 5 * QC_LOQ & abs(Field_Value) >= 5 * QC_LOQ & RPD > 20 ~ "Fail",
+        abs(QC_Value) < 5 * QC_LOQ | abs(Field_Value) < 5 * QC_LOQ & abs(abs(QC_Value) - abs(Field_Value)) > 2 * QC_LOQ ~ "Fail",
         TRUE ~ "Pass"
       )
     ) %>%
