@@ -1,6 +1,6 @@
 # --- Checking and Loading Necessary Packages ---
 message("Checking for required packages...")
-required_packages <- c("shiny", "dplyr", "DBI", "odbc", "DT", "knitr", "rmarkdown", "openxlsx")
+required_packages <- c("shiny", "dplyr", "DBI", "odbc", "DT", "knitr", "rmarkdown", "openxlsx", "purrr")
 
 for (pkg in required_packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -85,8 +85,26 @@ main <- function() {
     end_date   = user_input$end_date
   )
   
+# --- Step 5: Generate Calibration Tracking Sheet (NEW) ---
+  if (!is.null(data_list$Results_Raw) && !is.null(data_list$Analytes_Raw)) {
+    
+    message("\nSourcing calibration sheet generator...")
+    source("05_calibration_sheet.R")
+    
+    calibration_sheet <- generate_calibration_sheet(
+      results_df = data_list$Results_Raw,
+      analytes_df = data_list$Analytes_Raw,
+      user_input = user_input
+    )
+    
+    data_list$Calibration_Sheet <- calibration_sheet
+    
+  } else {
+    message("Results or Analytes data not available. Skipping calibration sheet generation.")
+  }
   
-  # --- 5a. Source and Execute Data Screening ---
+  
+  # --- 6a. Source and Execute Data Screening ---
   if (!is.null(data_list$Final_Merged_Data) && nrow(data_list$Final_Merged_Data) > 0) {
     
     message("\nSourcing data screening functions...")
@@ -105,7 +123,7 @@ main <- function() {
   }
   
   
-  # --- 5b. Screen Biological Data ---
+  # --- 6b. Screen Biological Data ---
   if (!is.null(data_list$Final_Merged_BioData) && nrow(data_list$Final_Merged_BioData) > 0) {
     
     bray_curtis_results <- calculate_bray_curtis(
@@ -119,7 +137,7 @@ main <- function() {
 
   
   
-  # --- 6. Source and Execute Summary Statistics ---
+  # --- 7. Source and Execute Summary Statistics ---
   if (!is.null(data_list$Screened_Data)) {
     message("\nSourcing statistics functions...")
     source("03_data_statistics_functions.R")
@@ -140,7 +158,7 @@ main <- function() {
   }
   
 
-  # --- 7. Generate Final Excel Report ---
+  # --- 8. Generate Final Excel Report ---
   
   # First, check if there are any statistics to report on at all
   if (!is.null(data_list$Summary_Statistics) || !is.null(data_list$Bio_Summary_Statistics)) {
@@ -175,5 +193,5 @@ main <- function() {
 }
 
 
-# --- 8. Execute the script ---
+# --- 9. Execute the script ---
 analysis_results <- main()
