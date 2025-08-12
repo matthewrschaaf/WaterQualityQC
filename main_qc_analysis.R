@@ -85,19 +85,21 @@ main <- function() {
     end_date   = user_input$end_date
   )
   
-# --- Step 5: Generate Calibration Tracking Sheet (NEW) ---
+# --- Step 5: Generate Calibration Tracking Sheet ---
   if (!is.null(data_list$Results_Raw) && !is.null(data_list$Analytes_Raw)) {
     
     message("\nSourcing calibration sheet generator...")
     source("05_calibration_sheet.R")
     
-    calibration_sheet <- generate_calibration_sheet(
+    
+    calibration_results <- generate_calibration_sheet(
       results_df = data_list$Results_Raw,
       analytes_df = data_list$Analytes_Raw,
       user_input = user_input
     )
     
-    data_list$Calibration_Sheet <- calibration_sheet
+    data_list$Calibration_Data <- calibration_results
+    
     
   } else {
     message("Results or Analytes data not available. Skipping calibration sheet generation.")
@@ -183,7 +185,8 @@ main <- function() {
       chem_split_data = data_list$Split_Screened_Data,
       chem_data       = data_list$Screened_Data,
       locations       = data_list$Locations_Data,
-      output_filepath = full_output_path
+      output_filepath = full_output_path,
+      calibration_data = data_list$Calibration_Data$Final_Calibration_Sheet
     )
     
   } else {

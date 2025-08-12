@@ -13,7 +13,8 @@ generate_excel_report <- function(user_input,
                                   chem_split_data, 
                                   chem_data, 
                                   locations, 
-                                  output_filepath) {
+                                  output_filepath,
+                                  calibration_data) {
   
   # --- 1. Setup Workbook and Styles ---
   wb <- createWorkbook()
@@ -353,13 +354,21 @@ generate_excel_report <- function(user_input,
     style = fail_style
   )
   
+  # --- 6. Build Calibration Tracking Sheet ---
+  if (!is.null(calibration_data) && nrow(calibration_data) > 0) {
+    
+    addWorksheet(wb, "Calibration Tracking")
+    writeData(wb, "Calibration Tracking", calibration_data, headerStyle = bold_style)
+    addFilter(wb, "Calibration Tracking", rows = 1, cols = 1:ncol(calibration_data))
+    setColWidths(wb, "Calibration Tracking", cols = 1:ncol(calibration_data), widths = "auto")
+  }
   
-  # --- 6. Placeholder for Sheet 6 ---
+  # --- 7. Placeholder for Sheet 6 ---
   addWorksheet(wb, "SOP Deviations")
   writeData(wb, "SOP Deviations", "Placeholder: Use this sheet to document any deviations from SOPs.")
   
   
-  # --- 7. Save the Workbook ---
+  # --- 8. Save the Workbook ---
   saveWorkbook(wb, file = output_filepath, overwrite = TRUE)
   message(paste("Excel report generated successfully at:", output_filepath))
 }
