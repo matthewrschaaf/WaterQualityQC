@@ -358,9 +358,52 @@ generate_excel_report <- function(user_input,
   if (!is.null(calibration_data) && nrow(calibration_data) > 0) {
     
     addWorksheet(wb, "Calibration Tracking")
+    
+    # Write the dataframe to the new sheet
     writeData(wb, "Calibration Tracking", calibration_data, headerStyle = bold_style)
+    
+    # Add filters and auto-size columns
     addFilter(wb, "Calibration Tracking", rows = 1, cols = 1:ncol(calibration_data))
     setColWidths(wb, "Calibration Tracking", cols = 1:ncol(calibration_data), widths = "auto")
+    
+    # --- Add Conditional Formatting for Calibration Dates ---
+    
+    # a. Create the styles for valid (green) and expired (red) calibrations
+    pass_style <- createStyle(fontColour = "#006100", bgFill = "#C6EFCE")
+    fail_style <- createStyle(fontColour = "#9C0006", bgFill = "#FFC7CE")
+    
+    # b. Define which columns to format and their rules
+    formatting_rules <- list(
+      list(col_name = "Spec_Cond_Cal_Date", days = 7),
+      list(col_name = "pH_Cal_Date", days = 7),
+      list(col_name = "DO_Cal_Date", days = 0),
+      list(col_name = "ORP_Cal_Date", days = 60),
+      list(col_name = "Chl_Cal_Date", days = 60),
+      list(col_name = "Phyco_Cal_Date", days = 60),
+      list(col_name = "Turb_Cal_Date", days = 60)
+    )
+    
+    # 3. Loop through the rules and apply the formatting to each column
+    for (rule in formatting_rules) {
+      cal_col_index <- which(names(calibration_data) == rule$col_name)
+      sample_date_col_index <- which(names(calibration_data) == "Sample_Date")
+  
+      if (length(cal_col_index) > 0 && length(sample_date_col_index) > 0) {
+        
+        cal_col_letter <- openxlsx::int2col(cal_col_index)
+        sample_date_col_letter <- openxlsx::int2col(sample_date_col_index)
+        
+        data_rows <- 2:(nrow(calibration_data) + 1)
+        
+        # Rule for PASS (Green): The cell is not blank AND the difference in days is within the limit
+        pass_rule <- paste0("AND(", cal_col_letter, "2<>\"\", (", sample_date_col_letter, "2-", cal_col_letter, "2)<=", rule$days, ")")
+        conditionalFormatting(wb, "Calibration Tracking", cols = cal_col_index, rows = data_rows, rule = pass_rule, style = pass_style)
+        
+        # Rule for FAIL (Red): The cell is not blank AND the difference in days is over the limit
+        fail_rule <- paste0("AND(", cal_col_letter, "2<>\"\", (", sample_date_col_letter, "2-", cal_col_letter, "2)>", rule$days, ")")
+        conditionalFormatting(wb, "Calibration Tracking", cols = cal_col_index, rows = data_rows, rule = fail_rule, style = fail_style)
+      }
+    }
   }
   
   # --- 7. Placeholder for Sheet 6 ---
