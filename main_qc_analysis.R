@@ -195,7 +195,7 @@ main <- function() {
   
   message("\nWorkflow complete. Reorganizing final results list...")
   
-  # --- Reorganize the data_list into a cleanerstructure ---
+  # --- Reorganize data_list into a cleaner structure ---
   
   chem_list <- list(
     QC_Results_Filtered = data_list$QC_Results_Filtered,
@@ -235,7 +235,6 @@ main <- function() {
     Calibration_Data = data_list$Calibration_Data
   )
   
-  # Return the newly organized list
   return(final_organized_list)
 }
 
