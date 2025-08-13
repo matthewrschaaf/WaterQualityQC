@@ -192,9 +192,52 @@ main <- function() {
   } else {
     message("No statistics available. Skipping report generation.")
   }
-  return(data_list)
+  
+  message("\nWorkflow complete. Reorganizing final results list...")
+  
+  # --- Reorganize the data_list into a cleanerstructure ---
+  
+  chem_list <- list(
+    QC_Results_Filtered = data_list$QC_Results_Filtered,
+    QC_Samples_Raw = data_list$QC_Samples_Raw,
+    Results_Raw = data_list$Results_Raw,
+    Analytes_Raw = data_list$Analytes_Raw,
+    Final_Merged_Data = data_list$Final_Merged_Data
+  )
+  
+  bio_list <- list(
+    QC_Bioresults_Filtered = data_list$QC_Bioresults_Filtered,
+    QC_Biosamples_Raw = data_list$QC_Biosamples_Raw,
+    Bioresults_Raw = data_list$BioResults_Raw,
+    Sample_Type_Codes = data_list$Sample_Type_Codes_Raw,
+    Taxa_Raw = data_list$Taxa_Raw,
+    Final_Merged_BioData = data_list$Final_Merged_BioData
+  )
+  
+  summary_list <- list(
+    Chem_Summary_Statistics = data_list$Summary_Statistics,
+    Bio_Summary_Statistics = data_list$Bio_Summary_Statistics
+  )
+  
+  screened_list <- list(
+    Screened_Chem_Data = data_list$Screened_Data,
+    Split_Screened_Chem_Data = data_list$Split_Screened_Data,
+    Screened_Sediment_Data = data_list$Screened_Sediment_Data
+  )
+  
+  final_organized_list <- list(
+    Chem = chem_list,
+    Bio = bio_list,
+    Summary = summary_list,
+    Screened = screened_list,
+    Bray_Curtis_Results = data_list$Bray_Curtis_Results,
+    Locations_Data = data_list$Locations_Data,
+    Calibration_Data = data_list$Calibration_Data
+  )
+  
+  # Return the newly organized list
+  return(final_organized_list)
 }
-
 
 # --- 9. Execute the script ---
 analysis_results <- main()
