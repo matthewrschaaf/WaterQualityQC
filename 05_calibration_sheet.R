@@ -74,38 +74,31 @@ generate_calibration_sheet <- function(results_df, analytes_df, user_input) {
     # --- Find the latest calibration date for each parameter IF it was collected ---
     
     sc_cal_date <- if (grepl("00094", collected_storets)) {
-      valid_dates <- SpCond_dates %>% filter(sc_date <= trip$Sample_Date & sc_date >= (trip$Sample_Date - 7))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, sc_date)$sc_date else NA
+      SpCond_dates %>% filter(sc_date <= trip$Sample_Date & sc_date >= (trip$Sample_Date - 7)) %>% summarise(d = max(sc_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     ph_cal_date <- if (grepl("00400", collected_storets)) {
-      valid_dates <- pH_dates %>% filter(ph_date <= trip$Sample_Date & ph_date >= (trip$Sample_Date - 7))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, ph_date)$ph_date else NA
+      pH_dates %>% filter(ph_date <= trip$Sample_Date & ph_date >= (trip$Sample_Date - 7)) %>% summarise(d = max(ph_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     do_cal_date <- if (grepl("00299", collected_storets) || grepl("00301", collected_storets)) {
-      valid_dates <- DO_dates %>% filter(do_date == trip$Sample_Date)
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, do_date)$do_date else NA
+      DO_dates %>% filter(do_date == trip$Sample_Date) %>% summarise(d = max(do_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     orp_cal_date <- if (grepl("00090", collected_storets)) {
-      valid_dates <- ORP_dates %>% filter(orp_date <= trip$Sample_Date & orp_date >= (trip$Sample_Date - 60))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, orp_date)$orp_date else NA
+      ORP_dates %>% filter(orp_date <= trip$Sample_Date & orp_date >= (trip$Sample_Date - 60)) %>% summarise(d = max(orp_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     chl_cal_date <- if (grepl("32241", collected_storets) || grepl("32244", collected_storets)) {
-      valid_dates <- Chlorophyll_dates %>% filter(chl_date <= trip$Sample_Date & chl_date >= (trip$Sample_Date - 60))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, chl_date)$chl_date else NA
+      Chlorophyll_dates %>% filter(chl_date <= trip$Sample_Date & chl_date >= (trip$Sample_Date - 60)) %>% summarise(d = max(chl_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     phyco_cal_date <- if (grepl("32242", collected_storets)) {
-      valid_dates <- Phycocyanin_dates %>% filter(phyco_date <= trip$Sample_Date & phyco_date >= (trip$Sample_Date - 60))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, phyco_date)$phyco_date else NA
+      Phycocyanin_dates %>% filter(phyco_date <= trip$Sample_Date & phyco_date >= (trip$Sample_Date - 60)) %>% summarise(d = max(phyco_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     turb_cal_date <- if (grepl("00076", collected_storets)) {
-      valid_dates <- Turbidity_dates %>% filter(turb_date <= trip$Sample_Date & turb_date >= (trip$Sample_Date - 60))
-      if (nrow(valid_dates) > 0) top_n(valid_dates, 1, turb_date)$turb_date else NA
+      Turbidity_dates %>% filter(turb_date <= trip$Sample_Date & turb_date >= (trip$Sample_Date - 60)) %>% summarise(d = max(turb_date, na.rm = TRUE)) %>% pull(d)
     } else { NA }
     
     # --- Assemble the Row for the Final Table ---
