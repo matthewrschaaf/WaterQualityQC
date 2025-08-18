@@ -136,33 +136,10 @@ main <- function() {
     
     message("\nWorkflow complete")
   }
-
-  
-  
-  # --- 7. Source and Execute Summary Statistics ---
-  if (!is.null(data_list$Screened_Data)) {
-    message("\nSourcing statistics functions...")
-    source("03_data_statistics_functions.R")
-  
-    summary_statistics_list <- calculate_summary_statistics(
-      screened_dataframe = data_list$Screened_Data
-    )
-    data_list$Summary_Statistics <- summary_statistics_list
-  }
-
-  if (!is.null(data_list$Bray_Curtis_Results)) {
-    
-    bio_summary_list <- calculate_bio_summary_statistics(
-      bray_curtis_df = data_list$Bray_Curtis_Results
-    )
-
-    data_list$Bio_Summary_Statistics <- bio_summary_list
-  }
   
 
-  # --- 8. Generate Final Excel Report ---
+  # --- 7. Generate Final Excel Report ---
   
-  # First, check if there are any statistics to report on at all
   if (!is.null(data_list$Summary_Statistics) || !is.null(data_list$Bio_Summary_Statistics)) {
     
     message("\nSourcing Excel report generator...")
@@ -177,8 +154,6 @@ main <- function() {
     
     generate_excel_report(
       user_input      = user_input,
-      chem_stats      = data_list$Summary_Statistics,
-      bio_stats       = data_list$Bio_Summary_Statistics,
       bray_curtis     = data_list$Bray_Curtis_Results,
       bio_data        = data_list$Final_Merged_BioData,
       sediment_data   = data_list$Screened_Sediment_Data, 
@@ -238,5 +213,5 @@ main <- function() {
   return(final_organized_list)
 }
 
-# --- 9. Execute the script ---
+# --- 8. Execute the script ---
 analysis_results <- main()

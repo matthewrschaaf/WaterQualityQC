@@ -1,0 +1,80 @@
+---
+title: 'Water Quality QC Script: User Guide & Documentation'
+author: "Matthew Schaaf"
+date: "2025-08-18"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+# This chunk sets up the report but won't be visible in the output.
+knitr::opts_chunk$set(echo = TRUE, message = TRUE, warning = TRUE)
+library(dplyr)
+```
+
+# Introduction
+
+This document provides a comprehensive overview of the Water Quality QC Analysis project. Its purpose is to guide the user through the script's functionality, explain its outputs, and outline considerations for future use and maintenance.
+
+# Instructions for Use
+
+## 1. Project Setup
+The entire project is contained within an RStudio Project (`.Rproj` file). All scripts (`main_qc_analysis.R`, `01_...`, etc.) should be in the same folder located here: "O:\ED\Private\Water Quality\Co-op & Others Oversight\Matthew Schaaf\QualityControl_and_ProgramActivityCloseoutReport\WaterQualityQC".
+
+## 2. Running the Analysis
+The entire analysis is run from a single master script. Sourcing this file will initiate the user interface and run the complete workflow.
+
+```{r, eval=FALSE}
+# To run the entire analysis:
+source("main_qc_analysis.R")
+```
+
+# How the Script Works
+
+The project is divided into several modular scripts, each with a specific purpose. The `main_qc_analysis.R` script controls the overall workflow.
+
+## Data Preparation (`01_data_preparation_functions.R`)
+This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format. For example, the following code block shows how the chemical data tables are merged:
+
+```{r, eval=FALSE}
+# Example of merging chemical data
+merged_df <- left_join(QC_Results, QC_Samples, by = c("Loc_ID", "QC_Sample", "QC_Type"))
+merged_df <- left_join(merged_df, Results, by = c("Loc_ID", "Assoc_Samp", "Storet_Num"))
+final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num")
+```
+
+## Data Screening (`02_data_screening_functions.R`)
+This script takes the prepared data and applies the quality control criteria. For chemical data, it calculates the Relative Percent Difference (RPD) and applies a two-tiered pass/fail system. For biological data, it calculates the Bray-Curtis Dissimilarity Index.
+
+## Final Report (`04_generate_report.R`)
+This script takes all the processed data and summary statistics and writes them to a multi-sheet Excel file.
+
+# Explanation of Outputs
+
+The primary output is an Excel file named `QC_Report_[StartDate]_to_[EndDate].xlsx`. This file contains multiple sheets, including:
+
+* 
+* **DUP Chem QC Results:** A detailed table of all duplicate samples, with pass/fail results highlighted.
+* **Calibration Tracking:** A sheet that matches sampling dates to the most recent valid instrument calibration.
+
+# Future Considerations & Maintenance
+
+## Annual Updates
+Certain parts of the script may require updates from year to year.
+
+### Calibration Log File Path
+The path to the calibration log is hardcoded in `05_calibration_sheet.R`. If this file is moved or a new annual file is created, this path must be updated.
+
+```{r, eval=FALSE}
+# Path to update in 05_calibration_sheet.R:
+calibration_log_path <- "O:/ED/Private/Water Quality/Data/FY2025/2025 Field/Calibration Log/Calibration Logs.xlsx"
+```
+
+## Script Enhancements
+* **Dynamic GUI Choices:** The lake and QC type choices in the GUI are currently hardcoded. A future improvement could be to populate these lists dynamically from the database.
+* **Error Handling:** More robust error handling could be added to provide more specific feedback to the user if a database connection or file read fails.
+
+

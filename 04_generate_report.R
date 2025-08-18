@@ -5,8 +5,6 @@ library(dplyr)
 
 # --- Generate Excel Report Function ---
 generate_excel_report <- function(user_input, 
-                                  chem_stats, 
-                                  bio_stats, 
                                   bray_curtis, 
                                   bio_data, 
                                   sediment_data, 
@@ -312,6 +310,18 @@ generate_excel_report <- function(user_input,
   # --- 5b. Biological Summary Sheet ---
   addWorksheet(wb, "Bio Summary Statistics")
   
+  # --- Calculate Statistics for Bio Summary Sheet ---
+  bc_index_stats <- bray_curtis %>%
+    summarise(
+      Mean_Bray_Curtis_Index = mean(Bray_Curtis_Index, na.rm = TRUE),
+      Median_Bray_Curtis_Index = median(Bray_Curtis_Index, na.rm = TRUE)
+    )
+  
+  bio_pass_fail <- bray_curtis %>%
+    group_by(BC_Result) %>%
+    summarise(Count = n(), .groups = 'drop') %>%
+    mutate(Percentage = (Count / sum(Count)) * 100)
+  
   bc_criteria_text <- paste(
     "Precision and comparability for phytoplankton and zooplankton samples were assessed using the Bray-Curtis Dissimilarity index (B-C), with a value of <= 0.25 considered a successful pass.",
     "",
@@ -327,7 +337,8 @@ generate_excel_report <- function(user_input,
   # Write the Index statistics table, leaving some space
   writeData(wb, "Bio Summary Statistics", "Bray-Curtis Index Statistics", startCol = 1, startRow = 7)
   addStyle(wb, "Bio Summary Statistics", style = bold_style, rows = 7, cols = 1)
-  writeData(wb, "Bio Summary Statistics", bio_stats$BC_Index_Statistics, startCol = 1, startRow = 8)
+  writeData(wb, "Bio Summary Statistics", bc_index_stats, startCol = 1, startRow = 8)
+  writeData(wb, "Bio Summary Statistics", bio_pass_fail, startCol = 1, startRow = 10)
   setColWidths(wb, "Bio Summary Statistics", cols = 1:3, widths = "auto")
   
   # Write the Bray Curtis Results table to the right of the other stats
@@ -355,7 +366,6 @@ generate_excel_report <- function(user_input,
   )
   
   # --- 6. Build Calibration Tracking Sheet ---
-  
   cal_criteria_text <- paste(
     "This sheet verifies that instrument calibrations were performed within the required frequency relative to each field sampling trip. For each sampling day, the script finds the most recent calibration date for each parameter that was collected.",
     "",
