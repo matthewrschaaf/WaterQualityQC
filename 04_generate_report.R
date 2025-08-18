@@ -355,6 +355,19 @@ generate_excel_report <- function(user_input,
   )
   
   # --- 6. Build Calibration Tracking Sheet ---
+  
+  cal_criteria_text <- paste(
+    "This sheet verifies that instrument calibrations were performed within the required frequency relative to each field sampling trip. For each sampling day, the script finds the most recent calibration date for each parameter that was collected.",
+    "",
+    "The calibration is considered valid (highlighted in green) if it meets the following criteria:",
+    "  • Specific Conductivity & pH: Calibrated at least weekly (within 7 days) prior to the sampling date.",
+    "  • Dissolved Oxygen & Oxygen Saturation: Calibrated on the same day as the sampling trip.",
+    "  • ORP, Chlorophyll, Phycocyanin, & Turbidity: Calibrated at least every two months (within 60 days) prior to the sampling date.",
+    "",
+    "If a valid calibration date is not found within the required time frame, the cell is highlighted in red.",
+    sep = "\n"
+  )
+  
   if (!is.null(calibration_data) && nrow(calibration_data) > 0) {
     
     addWorksheet(wb, "Calibration Tracking")
@@ -365,6 +378,8 @@ generate_excel_report <- function(user_input,
     # Add filters and auto-size columns
     addFilter(wb, "Calibration Tracking", rows = 1, cols = 1:ncol(calibration_data))
     setColWidths(wb, "Calibration Tracking", cols = 1:ncol(calibration_data), widths = "auto")
+    cal_criteria_comment <- createComment(comment = cal_criteria_text)
+    writeComment(wb, "Calibration Tracking", col = 12, row = 1, comment = cal_criteria_comment)
     
     # --- Add Conditional Formatting for Calibration Dates ---
     
