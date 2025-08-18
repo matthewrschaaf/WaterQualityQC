@@ -139,8 +139,6 @@ main <- function() {
   
 
   # --- 7. Generate Final Excel Report ---
-  
-  if (!is.null(data_list$Summary_Statistics) || !is.null(data_list$Bio_Summary_Statistics)) {
     
     message("\nSourcing Excel report generator...")
     source("04_generate_report.R") 
@@ -163,10 +161,7 @@ main <- function() {
       output_filepath = full_output_path,
       calibration_data = data_list$Calibration_Data$Final_Calibration_Sheet
     )
-    
-  } else {
-    message("No statistics available. Skipping report generation.")
-  }
+
   
   message("\nWorkflow complete. Reorganizing final results list...")
   
@@ -189,11 +184,6 @@ main <- function() {
     Final_Merged_BioData = data_list$Final_Merged_BioData
   )
   
-  summary_list <- list(
-    Chem_Summary_Statistics = data_list$Summary_Statistics,
-    Bio_Summary_Statistics = data_list$Bio_Summary_Statistics
-  )
-  
   screened_list <- list(
     Screened_Chem_Data = data_list$Screened_Data,
     Split_Screened_Chem_Data = data_list$Split_Screened_Data,
@@ -203,7 +193,6 @@ main <- function() {
   final_organized_list <- list(
     Chem = chem_list,
     Bio = bio_list,
-    Summary = summary_list,
     Screened = screened_list,
     Bray_Curtis_Results = data_list$Bray_Curtis_Results,
     Locations_Data = data_list$Locations_Data,

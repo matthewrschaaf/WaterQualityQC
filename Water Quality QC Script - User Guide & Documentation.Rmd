@@ -22,9 +22,11 @@ This document provides a comprehensive overview of the Water Quality QC Analysis
 # Instructions for Use
 
 ## 1. Project Setup
-The entire project is contained within an RStudio Project (`.Rproj` file). All scripts (`main_qc_analysis.R`, `01_...`, etc.) should be in the same folder located here: "O:\ED\Private\Water Quality\Co-op & Others Oversight\Matthew Schaaf\QualityControl_and_ProgramActivityCloseoutReport\WaterQualityQC".
+
+The entire project is contained within an RStudio Project (`.Rproj` file). All scripts (`main_qc_analysis.R`, `01_...`, etc.) should be in the same folder located here: "O:\ED\Private\Water Quality\Co-op & Others Oversight\Matthew Schaaf\QualityControl\_and_ProgramActivityCloseoutReport\WaterQualityQC".
 
 ## 2. Running the Analysis
+
 The entire analysis is run from a single master script. Sourcing this file will initiate the user interface and run the complete workflow.
 
 ```{r, eval=FALSE}
@@ -37,6 +39,7 @@ source("main_qc_analysis.R")
 The project is divided into several modular scripts, each with a specific purpose. The `main_qc_analysis.R` script controls the overall workflow.
 
 ## Data Preparation (`01_data_preparation_functions.R`)
+
 This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format. For example, the following code block shows how the chemical data tables are merged:
 
 ```{r, eval=FALSE}
@@ -47,25 +50,42 @@ final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num")
 ```
 
 ## Data Screening (`02_data_screening_functions.R`)
+
 This script takes the prepared data and applies the quality control criteria. For chemical data, it calculates the Relative Percent Difference (RPD) and applies a two-tiered pass/fail system. For biological data, it calculates the Bray-Curtis Dissimilarity Index.
 
+## Calibration Tracking (`05_calibration_sheet.R`)
+
+This script brings in the calibration tracking sheet, as well as the Results table. It then cross-references to provide the latest relative calibration date. This is then used to see if calibration frequencies are being upheld to assure measurement accuracy.
+
 ## Final Report (`04_generate_report.R`)
+
 This script takes all the processed data and summary statistics and writes them to a multi-sheet Excel file.
 
 # Explanation of Outputs
 
 The primary output is an Excel file named `QC_Report_[StartDate]_to_[EndDate].xlsx`. This file contains multiple sheets, including:
 
-* 
-* **DUP Chem QC Results:** A detailed table of all duplicate samples, with pass/fail results highlighted.
-* **Calibration Tracking:** A sheet that matches sampling dates to the most recent valid instrument calibration.
+-   **Locations Sampled:** A table showing all locations sampled across the user given time period.
+-   **Samples Collected vs Projected:** A placeholder sheet that works to track whether all expected samples (both normal and QC) were collected.
+-   **Sediment QC Results:** A table with all QC samples that have a Sample_Type of "S" (for sediment), with pass/fail results highlighted.
+-   **DUP Phys QC Results:** A table for all QC samples that have a QC_Lab_ID of "FIELD", with pass/fail results highlighted.
+-   **DUP Chem QC Results:** A detailed table of all duplicate samples, with pass/fail results highlighted.
+-   **SPL Chem QC Results:** A detailed table of all split samples, with pass/fail results highlighted.
+-   **RNS Chem QC Results:** A detailed table of all rinse samples, with pass/fail results highlighted.
+-   **Various Chem QC Results:** These can include FBLK, TBLK, or DDL (if necessary), with pass/fail results highlighted.
+-   **All Bio QC Results:** A table of all biological QC samples taken.
+-   **Bio Summary Statistics:** A table detailing results of QC done for biological samples.
+-   **Calibration Tracking:** A sheet that matches sampling dates to the most recent valid instrument calibration.
+-   **SOP Deviations:** A placeholder sheet for documenting any deviations from SOPs during the given project.
 
 # Future Considerations & Maintenance
 
 ## Annual Updates
+
 Certain parts of the script may require updates from year to year.
 
 ### Calibration Log File Path
+
 The path to the calibration log is hardcoded in `05_calibration_sheet.R`. If this file is moved or a new annual file is created, this path must be updated.
 
 ```{r, eval=FALSE}
@@ -74,7 +94,6 @@ calibration_log_path <- "O:/ED/Private/Water Quality/Data/FY2025/2025 Field/Cali
 ```
 
 ## Script Enhancements
-* **Dynamic GUI Choices:** The lake and QC type choices in the GUI are currently hardcoded. A future improvement could be to populate these lists dynamically from the database.
-* **Error Handling:** More robust error handling could be added to provide more specific feedback to the user if a database connection or file read fails.
 
-
+-   **Dynamic GUI Choices:** The ability to select lakes and QC types within the GUI were removed. A future improvement could be to populate these lists dynamically from the database.
+-   **Error Handling:** More robust error handling could be added to provide more specific feedback to the user if a database connection or file read fails.
