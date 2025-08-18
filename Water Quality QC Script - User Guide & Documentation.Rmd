@@ -40,7 +40,7 @@ The project is divided into several modular scripts, each with a specific purpos
 
 ## Data Preparation (`01_data_preparation_functions.R`)
 
-This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format. For example, the following code block shows how the chemical data tables are merged:
+This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format. For example, the following code block shows an example of how the chemical data tables are merged:
 
 ```{r, eval=FALSE}
 # Example of merging chemical data
@@ -49,9 +49,132 @@ merged_df <- left_join(merged_df, Results, by = c("Loc_ID", "Assoc_Samp", "Store
 final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num")
 ```
 
+Cleaning consists of renaming and reordering of columns as well as deduplication of tables if multiple identical entries are found within the access database.
+The deduplication code chunk is seen below:
+
+```{r, eval=FALSE}
+# Deduplication code
+    message("\nDeduplicating the Final_Merged_Data dataframe...")
+    
+    # --- Step 1: Isolate rows that are NOT true duplicates ---
+    discrepancies_and_uniques_chem <- final_merged_df %>%
+      group_by(Loc_ID, Assoc_Samp, Storet_Num, QC_Type) %>%
+      filter(n_distinct(Text_QC_Value) > 1 | n_distinct(Text_Field_Value) > 1 | n() == 1) %>%
+      ungroup()
+    
+    # --- Step 2: Isolate and deduplicate the TRUE duplicates ---
+    true_duplicates_chem <- final_merged_df %>%
+      group_by(Loc_ID, Assoc_Samp, Storet_Num, QC_Type) %>%
+      filter(n_distinct(Text_QC_Value) == 1 & n_distinct(Text_Field_Value) == 1 & n() > 1) %>%
+      slice(1) %>%
+      ungroup()
+    
+    # --- Step 3: Combine the two sets back into the final dataframe ---
+    final_merged_df <- bind_rows(
+      discrepancies_and_uniques_chem, 
+      true_duplicates_chem
+    )
+    
+    message("-> Deduplication of Final_Merged_Data complete.")
+```
+
 ## Data Screening (`02_data_screening_functions.R`)
 
 This script takes the prepared data and applies the quality control criteria. For chemical data, it calculates the Relative Percent Difference (RPD) and applies a two-tiered pass/fail system. For biological data, it calculates the Bray-Curtis Dissimilarity Index.
+
+### Chemical Data Screening
+
+**RPD Calculation**
+The Relative Percent Difference (RPD) is the primary metric for comparing duplicate and split samples. It is calculated with the following formula, which uses absolute values to ensure the result is always positive:
+
+```{r, eval=FALSE}
+# RPD calculation (independent of LOQ)
+RPD <- if_else(
+  (abs(QC_Value) + abs(Field_Value)) == 0, 
+  0, 
+  abs(abs(QC_Value) - abs(Field_Value)) / ((abs(QC_Value) + abs(Field_Value)) / 2) * 100
+)
+```
+
+### Pass/Fail Logic
+
+The script then uses the calculated RPD or the Limit of Quantitation (LOQ) to apply pass/fail criteria in a sequential, two-step process.
+
+Criteria 1 serves as an initial, broad check for all applicable samples.
+
+```{r, eval=FALSE}
+# --- Step 1: Calculate Criteria 1 for all samples ---
+QC_Failed_Criteria1 <- case_when(
+  QC_Type %in% c("FBLK", "RNS") & is.na(QC_LOQ) ~ NA_character_,
+  QC_Type %in% c("FBLK", "RNS") & QC_Value >= QC_LOQ ~ "Fail",
+  QC_Type %in% c("DDL", "DUP", "SPL") & RPD > 20 ~ "Fail",
+  Parameter == "ORP" & RPD > 20 ~ "Fail",
+  TRUE ~ "Pass"
+)
+```
+
+If a duplicate or split sample fails Criteria 1 and has a valid LOQ, it proceeds to the more nuanced Criteria 2. If a sample passes Criteria 1, its overall result is "Pass" and it is not evaluated against Criteria 2.
+
+```{r, eval=FALSE}
+# --- Step 2: Calculate Criteria 2 ONLY if necessary ---
+QC_Failed_Criteria2 <- case_when(
+  QC_Failed_Criteria1 == "Pass" ~ NA_character_,
+  is.na(QC_LOQ) ~ "Can Not Be Calculated due to NA LOQ",
+  !QC_Type %in% c("DDL", "DUP", "SPL") ~ QC_Failed_Criteria1,
+  
+  # For duplicates that failed C1 and have a valid LOQ:
+  QC_Value == 0 & Field_Value == 0 ~ "Pass",
+  abs(QC_Value) >= 5 * QC_LOQ & abs(Field_Value) >= 5 * QC_LOQ & RPD > 20 ~ "Fail",
+  abs(QC_Value) < 5 * QC_LOQ | abs(Field_Value) < 5 * QC_LOQ & abs(abs(QC_Value) - abs(Field_Value)) > 2 * QC_LOQ ~ "Fail",
+  TRUE ~ "Pass"
+)
+```
+
+The Final Overall Status is then determined based on the results of this sequential check.
+
+```{r, eval=FALSE}
+# --- Step 3: Determine Final Overall Status ---
+QC_Failed_Overall <- case_when(
+  QC_Failed_Criteria1 == "Pass" ~ "Pass",
+  QC_Failed_Criteria2 == "Can Not Be Calculated due to NA LOQ" ~ QC_Failed_Criteria1,
+  TRUE ~ QC_Failed_Criteria2
+)
+```
+
+### Special Cases
+
+**Total Nitrogen:** This parameter has a special rule. It does not go through the standard criteria checks. Instead, its QC_Failed_Overall status is marked as "Fail" if either of its components (Kjeldahl, Tot or NO2+NO3, Tot) fail within the same sample group. Otherwise, it is marked as "Pass".
+
+**Sediment Samples:** All data for sediment samples (Sample_Type == 'S') are separated into their own dedicated dataframe for independent analysis and reporting.
+
+### Biological Data Screening
+For phytoplankton and zooplankton samples, precision is assessed using the Bray-Curtis Dissimilarity Index, with a value of ≤ 0.25 considered a pass. The calculation is performed for each unique sample pair.
+
+```{r, eval=FALSE}
+bray_curtis_results <- final_bio_df %>%
+  # Step 1: Filter out any rows where the key identifiers are missing
+  filter(!is.na(Loc_ID) & !is.na(OG_Sample)) %>%
+  
+  # Step 2: Group the data by each unique sample pair
+  group_by(Loc_ID, OG_Sample, QC_Type, Sample_Type) %>%
+  
+  # Step 3: Summarise the data for each group
+  summarise(
+    Sum_A = sum(Density_OG, na.rm = TRUE),
+    Sum_B = sum(Density_QC, na.rm = TRUE),
+    Sum_C = sum(pmin(Density_OG, Density_QC), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  
+  mutate(
+    Bray_Curtis_Index = if_else(
+      (Sum_A + Sum_B) == 0,
+      0,
+      1 - (2 * Sum_C) / (Sum_A + Sum_B)
+    ),
+    BC_Result = if_else(Bray_Curtis_Index <= 0.25, "Pass", "Fail")
+  )
+```
 
 ## Calibration Tracking (`05_calibration_sheet.R`)
 
