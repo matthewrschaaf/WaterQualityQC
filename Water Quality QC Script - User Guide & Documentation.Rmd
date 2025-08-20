@@ -23,7 +23,7 @@ This document provides a comprehensive overview of the Water Quality QC Analysis
 
 ## 1. Project Setup
 
-The entire project is contained within an RStudio Project (`.Rproj` file). All scripts (`main_qc_analysis.R`, `01_...`, etc.) should be in the same folder located here: "O:\ED\Private\Water Quality\Co-op & Others Oversight\Matthew Schaaf\QualityControl\_and_ProgramActivityCloseoutReport\WaterQualityQC".
+The entire project is contained within an RStudio Project (`.Rproj` file). All scripts (`main_qc_analysis.R`, `01_...`, etc.) should be in the same folder located here: `"O:\ED\Private\Water Quality\Co-op & Others Oversight\Matthew Schaaf\QualityControl\_and_ProgramActivityCloseoutReport\WaterQualityQC".`
 
 ## 2. Running the Analysis
 
@@ -40,17 +40,9 @@ The project is divided into several modular scripts, each with a specific purpos
 
 ## Data Preparation (`01_data_preparation_functions.R`)
 
-This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format. For example, the following code block shows an example of how the chemical data tables are merged:
+This script is responsible for connecting to the Access database, fetching the required raw data tables, performing necessary joins, and cleaning the data into an analysis-ready format.
 
-```{r, eval=FALSE}
-# Example of merging chemical data
-merged_df <- left_join(QC_Results, QC_Samples, by = c("Loc_ID", "QC_Sample", "QC_Type"))
-merged_df <- left_join(merged_df, Results, by = c("Loc_ID", "Assoc_Samp", "Storet_Num"))
-final_merged_df <- left_join(merged_df, Analytes, by = "Storet_Num")
-```
-
-Cleaning consists of renaming and reordering of columns as well as deduplication of tables if multiple identical entries are found within the access database.
-The deduplication code chunk is seen below:
+Cleaning consists of renaming and reordering of columns as well as deduplication of tables if multiple identical entries are found within the access database. The deduplication logic is seen below:
 
 ```{r, eval=FALSE}
 # Deduplication code
@@ -84,8 +76,7 @@ This script takes the prepared data and applies the quality control criteria. Fo
 
 ### Chemical Data Screening
 
-**RPD Calculation**
-The Relative Percent Difference (RPD) is the primary metric for comparing duplicate and split samples. It is calculated with the following formula, which uses absolute values to ensure the result is always positive:
+**RPD Calculation** The Relative Percent Difference (RPD) is the primary metric for comparing duplicate and split samples. It is calculated with the following formula, which uses absolute values to ensure the result is always positive:
 
 ```{r, eval=FALSE}
 # RPD calculation (independent of LOQ)
@@ -145,9 +136,8 @@ QC_Failed_Overall <- case_when(
 
 **Total Nitrogen:** This parameter has a special rule. It does not go through the standard criteria checks. Instead, its QC_Failed_Overall status is marked as "Fail" if either of its components (Kjeldahl, Tot or NO2+NO3, Tot) fail within the same sample group. Otherwise, it is marked as "Pass".
 
-**Sediment Samples:** All data for sediment samples (Sample_Type == 'S') are separated into their own dedicated dataframe for independent analysis and reporting.
-
 ### Biological Data Screening
+
 For phytoplankton and zooplankton samples, precision is assessed using the Bray-Curtis Dissimilarity Index, with a value of ≤ 0.25 considered a pass. The calculation is performed for each unique sample pair.
 
 ```{r, eval=FALSE}
@@ -184,7 +174,91 @@ This script brings in the calibration tracking sheet, as well as the Results tab
 
 This script takes all the processed data and summary statistics and writes them to a multi-sheet Excel file.
 
-# Explanation of Outputs
+# Inputs
+
+This section details all the external data sources required for the script to run.
+
+## Access Database
+
+The primary data source is a Microsoft Access database.
+
+**Connection Path:** `Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=O:/ED/Private/Water Quality/DASLER/Louisville_DASLER 81.mdb`
+
+### Tables Fetched in `01_data_preparation_functions.R`
+
+-   **[QC Results]:** `LOC_ID`, `QC_SAMPLE`, `LAB_ID`, `STORET_NUM`, `UNITS`, `VALUE`, `TEXT_VALUE`, `PQUANT`, `QC_TYPE`, `LAB_SNUM`
+-   **[QC Samples]:** `LOC_ID`, `QC_SAMPLE`, `QC_TYPE`, `ASSOC_SAMP`, `SAMPLE_TYPE`
+-   **[Results]:** `LOC_ID`, `SAMPLE_NUM`, `VALUE`, `TEXT_VALUE`, `STORET_NUM`, `UNITS`, `LAB_SNUM`, `LAB_ID`, `PQUANT`
+-   **[Analytes]:** `STORET_NUM`, `ANL_SHORT`
+-   **[QC Biosamples]:** `Loc_ID`, `QC_Sample`, `Sample_Type`, `QC_Type`, `Assoc_Samp`
+-   **[QC Bioresults]:** `LOC_ID`, `QC_SAMPLE`, `LAB_ID`, `SAMPLE_TYPE`, `TAXACODE`, `COUNT`, `BIOVOLUME`, `DENSITY`, `QC_TYPE`, `DENSITY_UNITS`, `BV_UNITS`, `ANAL_METHOD`
+-   **[BioResults]:** `sample_num`, `loc_id`, `taxacode`, `lab_id`, `sample_type`, `count`, `biovolume`, `density`, `anal_method`, `count_units`, `density_units`, `bv_units`
+-   **[Sample Type Codes]:** `SAMPLE_TYPE`, `TYPE_NAME`
+-   **[Taxa]:** `taxacode`, `sci_name`, `com_name`, `itis_tsn`
+-   **[Locations]:** `LOC_ID`, `LAT_DEG`, `LAT_MIN`, `LAT_SEC`, `LONG_DEG`, `LONG_MIN`, `LONG_SEC`, `LOC_DESC`
+
+## Calibration Log
+
+Instrument calibration data is read from a shared Excel file.
+
+**File Path:** `O:\ED\Private\Water Quality\Data\FY2025\2025 Field\Calibration Log\Calibration Logs.xlsx`
+
+### Sheets Imported in `05_calibration_sheet.R`
+
+-   **DO:** `Analyst`, `Date`, `Time`, `Barom_Pressure_mmHg`, `Temp`, `Initial_DO_mgL`, `Initial_DO_pct`, `Calibrated_DO_mgL`, `Calibrated_DO_pct`
+-   **Specific Conductance:** `Analyst`, `Date`, `Time`, `SC_Temp`, `Initial_SC`, `Standard_SC`, `Calibrated_SC`
+-   **pH:** `Analyst`, `Date`, `Time`, `pH_Temp`, `pH7_Initial`, `pH7_Standard`, `pH7_Calibrated`, `pH4_Initial`, `pH4_Standard`, `pH4_Calibrated`, `pH10_Initial`, `pH10_Standard`, `pH10_Calibrated`
+-   **ORP:** `Analyst`, `Cal_Date`, `Time`, `Next_Cal_Date`, `ORP_Temp`, `ORP_Initial`, `ORP_Standard`, `ORP_Calibrated`
+-   **Turbidity:** `Analyst`, `Cal_Date`, `Time`, `Next_Cal_Date`, `Turb_Temp`, `Turb_0_Initial`, `Turb_0_Calibrated`, `Turb_124_Initial`, `Turb_124_Calibrated`
+-   **Phycocyanin:** `Analyst`, `Cal_Date`, `Time`, `Next_Cal_Date`, `PC_RFU_Temp`, `PC_RFU_0_Init`, `PC_RFU_0_Post`, `PC_RFU_Initial`, `PC_RFU_Standard`, `PC_RFU_Calibrated`
+-   **Chlorophyll:** `Analyst`, `Cal_Date`, `Time`, `Next_Cal_Date`, `Chl_Temp`, `Chl_RFU_0_Init`, `Chl_RFU_0_Post`, `Chl_RFU_Initial`, `Chl_RFU_Standard`, `Chl_RFU_Calibrated`, `Chl_ugL_0_Init`, `Chl_ugL_0_Post`, `Chl_ugL_Initial`, `Chl_ugL_Standard`, `Chl_ugL_Calibrated`
+-   **Chlorophyll Standards Table**
+-   **Standards**
+
+------------------------------------------------------------------------
+
+# R Environment Outputs
+
+After running the `main_qc_analysis.R` script, a single, organized list object named `analysis_results` is created in the R environment. It has the following nested structure:
+
+-   **`analysis_results$Chem`**
+
+    -   **`QC_Results_Filtered`:** Processed QC Results with an additional `QC_Sample_Date` column.
+    -   **`QC_Samples_Raw`:** Raw data from the `[QC Samples]` table.
+    -   **`Results_Raw`:** Raw, deduplicated data from the `[Results]` table.
+    -   **`Analytes_Raw`:** Raw data from the `[Analytes]` table.
+    -   **`Final_Merged_Data`:** A fully merged dataframe of all chemical data with `NA` values handled and units converted.
+
+-   **`analysis_results$Bio`**
+
+    -   **`QC_Bioresults_Filtered`:** Filtered data from `[QC Bioresults]` for relevant sample types (PQN, PQL, ZQL, ZQN).
+    -   **`QC_Biosamples_Raw`:** Filtered data from `[QC Biosamples]` for relevant sample types.
+    -   **`Bioresults_Raw`:** Raw data from the `[BioResults]` table.
+    -   **`Sample_Type_Codes`:** Raw data from the `[Sample Type Codes]` table.
+    -   **`Taxa_Raw`:** Raw data from the `[Taxa]` table.
+    -   **`Final_Merged_BioData`:** A fully merged dataframe of all biological data, used for community analysis.
+
+-   **`analysis_results$Screened`**
+
+    -   **`Screened_Chem_Data`:** The `Final_Merged_Data` after applying RPD calculations and the two-tiered pass/fail criteria.
+    -   **`Split_Screened_Chem_Data`:** A list of dataframes, where `Screened_Chem_Data` is split by each unique `QC_Type`.
+    -   **`Screened_Sediment_Data`:** A subset of `Screened_Chem_Data` containing only sediment samples (`Sample_Type == 'S'`).
+
+-   **`analysis_results$Bray_Curtis_Results`:** A dataframe showing the calculated Bray-Curtis Index for each biological sample pair.
+
+-   **`analysis_results$Locations_Data`:** A dataframe containing location information (including degree coordinates) for only the locations present in the Results table.
+
+-   **`analysis_results$Calibration_Data`:**
+
+    -   **`Raw_Calibration_Logs`:** A list of dataframes, one for each imported sheet from the calibration log.
+    -   **`Cleaned_Calibration_Logs`:** A list of dataframes containing only the cleaned date columns from the logs.
+    -   **`Identified_Sampling_Days`:** A summary table of unique sampling days taken from the Results table.
+    -   **`Final_Calibration_Sheet`:** The final calibration tracking sheet that is written to the Excel report.
+    -   **`Lake_Profiles_Sheet`:** A subset of the calibration data for days where only DO or DO Saturation were measured.
+    -   **`Chlorophyll_Standards`:** Temperature-adjusted standards for chlorophyll and phycocyanin.
+    -   **`Standards`:** Standards currently being used for calibration.
+
+# Excel Sheet Outputs
 
 The primary output is an Excel file named `QC_Report_[StartDate]_to_[EndDate].xlsx`. This file contains multiple sheets, including:
 
